@@ -26,7 +26,7 @@ def computeParticipantAllLogRTResidual(participantIndex):
     regressor.fit(participantAllGainLoss, participantAllLogRT)
 
     participantAllPredictedLogRT = regressor.predict(participantAllGainLoss)
-    participantAllLogRTResidual = participantAllLogRT# - participantAllPredictedLogRT
+    participantAllLogRTResidual = participantAllLogRT - participantAllPredictedLogRT
 
     return np.ndarray.flatten(participantAllLogRTResidual)
 
@@ -105,11 +105,12 @@ lcaWrapper = lambda gain, loss, decay, competition, noiseStdDev, nonDecisionTime
         noiseStdDev, nonDecisionTime, [threshold1, threshold2])
 
 for metropolisRun in range(1, 2):
-    numSimulationsPerCondition = 50
+    numSimulationsPerCondition = 100
     paramFile = open('../data/differentialLCAUnequalThresholds.pickle'.format(metropolisRun), 'rb')
     params = pickle.load(paramFile)
     params = (params[-1:, :])[0]
     print("PARAMS = ", params)
+    params = [-2.83570389, 5.449, 62.15105359, 0.38892113, 24.95, 48.04508622, 4.10653348]
 
     allGainValues = list(range(10, 110, 10))
     allLossValues = list(range(-100, 0, 10))
@@ -126,12 +127,13 @@ for metropolisRun in range(1, 2):
             _, allModelRTs, allModelResponses = zip(*allValidResponseSimulations)
             allModelLogRTs = np.reshape(np.log(allModelRTs), (-1, 1))
             allModelResponses = np.reshape(allModelResponses, (-1, 1))
-            stakes = np.hstack((np.full((numSimulationsPerCondition, 1), gainValue), np.full((numSimulationsPerCondition, 1), gainValue)))
+            stakes = np.hstack((np.full((numSimulationsPerCondition, 1), gainValue), np.full((numSimulationsPerCondition, 1), lossValue)))
             stakesValues = np.vstack((stakesValues, stakes))
             modelLogRT = np.vstack((modelLogRT, allModelLogRTs))
             modelResponses = np.vstack((modelResponses, allModelResponses))
 
     stakesValues = stakesValues[1:, :]
+
     modelLogRT = modelLogRT[1:, :]
     modelResponses = modelResponses[1:, :]
 
@@ -139,7 +141,9 @@ for metropolisRun in range(1, 2):
     regressor.fit(stakesValues, modelLogRT)
 
     predictedLogRT = regressor.predict(stakesValues)
-    allLogRTResidual = modelLogRT# - predictedLogRT
+    allLogRTResidual = modelLogRT - predictedLogRT
+
+    print("Proportion of gambles accepted by the model: ", np.mean(modelResponses)*100)
 
     dict = {residual: response for residual, response in zip(np.ndarray.flatten(allLogRTResidual), np.ndarray.flatten(modelResponses))}
     sortedDict = {k: v for k, v in sorted(dict.items(), key=lambda item: item[0])}
@@ -148,8 +152,6 @@ for metropolisRun in range(1, 2):
     modelBinnedResponses = np.array_split(allResponses, numBins)
     modelBinPAccept = [np.mean(binResponses) for binResponses in modelBinnedResponses]
     plt.plot(modelBinPAccept, marker='o', linestyle='dashed', label='LCA Simulation {}'.format(metropolisRun))
-
-
 
 plt.legend()
 plt.show()

@@ -72,16 +72,14 @@ class CostFunction:
         self.allLossValues = allLossValues
 
     def __call__(self, parameters):
-        # costTimeStart = time.time()
-        # indTimes = []
+        term1 = 0
+        term2 = 0
+        term3 = 0
         cost = 0
         for gainValue in self.allGainValues:
             for lossValue in self.allLossValues:
-                # ti = time.time()
                 allSimulations = [lcaWrapper(gainValue, lossValue, *parameters) for _ in
                                   range(self.numSimulationsPerCondition)]
-                # tf = time.time()
-                # indTimes.append(tf-ti)
                 allValidResponseSimulations = list(filter(filterFunction, allSimulations))
                 print("Number of valid responses: ", len(allValidResponseSimulations))
                 if len(allValidResponseSimulations) < self.numSimulationsPerCondition/3:
@@ -92,116 +90,128 @@ class CostFunction:
                 RT_model_stdDev = np.std(allModelRTs)
                 P_data = computePData(gainValue, lossValue)
                 RT_data_mean, RT_data_stdDev = computeRTStatsData(gainValue, lossValue)
-                conditionCost = 400 * ((P_model - P_data) ** 2) + ((RT_data_mean - RT_model_mean) ** 2) / (
-                            RT_data_stdDev ** 2) \
-                                + 0.0002 * ((RT_data_stdDev - RT_model_stdDev) ** 2)
-                cost += conditionCost
+                term1 += ((P_model - P_data) ** 2)
+                term2 += ((RT_data_mean - RT_model_mean) ** 2) / (RT_data_stdDev ** 2)
+                term3 += ((RT_data_stdDev - RT_model_stdDev) ** 2)
+                # conditionCost = 400 * ((P_model - P_data) ** 2) + ((RT_data_mean - RT_model_mean) ** 2) / (
+                #             RT_data_stdDev ** 2) \
+                #                 + 0.0002 * ((RT_data_stdDev - RT_model_stdDev) ** 2)
+                # conditionCost = term1 + term2 + term3
+                # cost += conditionCost
 
-        # costTimeEnd = time.time()
-        # costTime = costTimeEnd - costTimeStart
-        # if costTime > 5:
-        #     plt.hist(indTimes)
-        #     plt.show()
-        #     print("Total time for simulation: ", sum(indTimes))
-
-        return cost
+        return (term1, term2, term3)#return cost
 
 allGainValues = list(range(10, 110, 10))
 allLossValues = list(range(-100, 0, 10))
-costFunction = CostFunction(50, allGainValues, allLossValues)                                                            ##########################
+costFunction = CostFunction(75, allGainValues, allLossValues)
 
-# minimization algorithm
-initialParameterVariance = (1, 1, 10, 0.25, 20, 20, 20)
-initialParameterValues = np.random.normal(0, initialParameterVariance)
-if initialParameterValues[6] < 0:
-    initialParameterValues[6] = -initialParameterValues[6]
+paramFile = open('../data/differentialLCAUnequalThresholds.pickle', 'rb')
+recordOfParams = pickle.load(paramFile)
 
-if initialParameterValues[5] < 0:
-    initialParameterValues[5] = -initialParameterValues[5]
+allTerms = []
+for iteration in range(0, 8100, 800):
+    print("Iteration: ", iteration)
+    params = (recordOfParams[iteration:, :])[0]
+    iterationTerms = costFunction(params)
+    allTerms.append(iterationTerms)
+    print("----------")
 
-if initialParameterValues[4] < 0:
-    initialParameterValues[4] = -initialParameterValues[4]
+print(allTerms)
 
-if initialParameterValues[3] < 0:
-    initialParameterValues[3] = -initialParameterValues[3]
-
-if initialParameterValues[2] < 0:
-    initialParameterValues[2] = -initialParameterValues[2]
-
-initialCost = costFunction(initialParameterValues)
-
-bestParameters = initialParameterValues
-parameterVariance = np.asarray(initialParameterVariance)
-minimumCost = initialCost
-recordOfBestParameters = bestParameters
-
-startTimeOverall = time.time()
-numIterationsMinAlgo = 20000
-for minimizationIteration in range(numIterationsMinAlgo):
-    lca.simulationTimes = []
-    lca.numIterations = []
-    startTime = time.time()
-    # decrease the value of variance
-    if minimizationIteration % 100 == 0:
-        parameterVariance = (1, 1, 0.99, 0.99, 0.99, 0.99, 0.99) * parameterVariance
-
-    # propose new parameters
-    newParameters = np.random.normal(loc=bestParameters, scale=parameterVariance)
-
-    # # check values of new parameters
-    if newParameters[5] < 0:
-        newParameters[5] = -newParameters[5]
-
-    if newParameters[4] < 0:
-        newParameters[4] = -newParameters[4]
-
-    if newParameters[3] < 0:
-        newParameters[3] = -newParameters[3]
-
-    if newParameters[2] < 0:
-        newParameters[2] = -newParameters[2]
-
-    # if newParameters[0] < 0:
-    #     newParameters[0] = 0
-    #
-    # # if newParameters[0] > 1:
-    # #     newParameters[0] = 1
-    #
-    # if newParameters[1] < 0:
-    #     newParameters[1] = 0
-    #
-    # # if newParameters[1] > 1:
-    # #     newParameters[1] = 1
-
-    # compute cost
-    cost = costFunction(newParameters)
-    if cost == -1:
-        continue
-
-    # update parameters
-    if cost < minimumCost:
-        bestParameters = newParameters
-        minimumCost = cost
-
-    # record best parameters
-    recordOfBestParameters = np.vstack((recordOfBestParameters, bestParameters))
-    saveFile = open('../data/LCAZeroRefUnequalThresholds.pickle', 'wb')
-    pickle.dump(recordOfBestParameters, saveFile)
-    saveFile.close()
-
-    # time for iteration
-    endTime = time.time()
-    iterationTime = endTime - startTime
-    print("Iteration: {} Time: {}".format(minimizationIteration, iterationTime))
-    print("Proposed Value of params: ", newParameters)
-    print("Best Value of params: ", bestParameters)
-    print("Cost: ", cost)
-    print("Best cost: ", minimumCost)
-    print("-------------------------------")
-
-endTimeOverall = time.time()
-overallTime = endTimeOverall - startTimeOverall
-
-print("Time taken for {} iterations: {} seconds".format(numIterationsMinAlgo, overallTime))
-[plt.plot(recordOfBestParameters[:, i]) for i in range(np.shape(recordOfBestParameters)[1])]
+fig, ax = plt.subplots(1, 3)
+allTerms1 = list(zip(*allTerms))[0]
+x = list(range(0, 8100, 800))
+ax[0].plot(x, allTerms1)
+ax[0].set_xlabel("Fitting iteration")
+ax[1].set_xlabel("Fitting iteration")
+ax[2].set_xlabel("Fitting iteration")
+allTerms2 = list(zip(*allTerms))[1]
+ax[1].plot(x, allTerms2)
+allTerms3 = list(zip(*allTerms))[2]
+ax[2].plot(x, allTerms3)
 plt.show()
+
+
+# # minimization algorithm
+# initialParameterVariance = (1, 1, 10, 0.25, 20, 20, 20)
+# initialParameterValues = np.random.normal(0, initialParameterVariance)
+# if initialParameterValues[6] < 0:
+#     initialParameterValues[6] = -initialParameterValues[6]
+#
+# if initialParameterValues[5] < 0:
+#     initialParameterValues[5] = -initialParameterValues[5]
+#
+# if initialParameterValues[4] < 0:
+#     initialParameterValues[4] = -initialParameterValues[4]
+#
+# if initialParameterValues[3] < 0:
+#     initialParameterValues[3] = -initialParameterValues[3]
+#
+# if initialParameterValues[2] < 0:
+#     initialParameterValues[2] = -initialParameterValues[2]
+#
+# initialCost = costFunction(initialParameterValues)
+#
+# bestParameters = initialParameterValues
+# parameterVariance = np.asarray(initialParameterVariance)
+# minimumCost = initialCost
+# recordOfBestParameters = bestParameters
+#
+# startTimeOverall = time.time()
+# numIterationsMinAlgo = 20000
+# for minimizationIteration in range(numIterationsMinAlgo):
+#     lca.simulationTimes = []
+#     lca.numIterations = []
+#     startTime = time.time()
+#     # decrease the value of variance
+#     if minimizationIteration % 100 == 0:
+#         parameterVariance = (1, 1, 0.99, 0.99, 0.99, 0.99, 0.99) * parameterVariance
+#
+#     # propose new parameters
+#     newParameters = np.random.normal(loc=bestParameters, scale=parameterVariance)
+#
+#     # # check values of new parameters
+#     if newParameters[5] < 0:
+#         newParameters[5] = -newParameters[5]
+#
+#     if newParameters[4] < 0:
+#         newParameters[4] = -newParameters[4]
+#
+#     if newParameters[3] < 0:
+#         newParameters[3] = -newParameters[3]
+#
+#     if newParameters[2] < 0:
+#         newParameters[2] = -newParameters[2]
+#
+#     # compute cost
+#     cost = costFunction(newParameters)
+#     if cost == -1:
+#         continue
+#
+#     # update parameters
+#     if cost < minimumCost:
+#         bestParameters = newParameters
+#         minimumCost = cost
+#
+#     # record best parameters
+#     recordOfBestParameters = np.vstack((recordOfBestParameters, bestParameters))
+#     saveFile = open('../data/LCAZeroRefUnequalThresholds.pickle', 'wb')
+#     pickle.dump(recordOfBestParameters, saveFile)
+#     saveFile.close()
+#
+#     # time for iteration
+#     endTime = time.time()
+#     iterationTime = endTime - startTime
+#     print("Iteration: {} Time: {}".format(minimizationIteration, iterationTime))
+#     print("Proposed Value of params: ", newParameters)
+#     print("Best Value of params: ", bestParameters)
+#     print("Cost: ", cost)
+#     print("Best cost: ", minimumCost)
+#     print("-------------------------------")
+#
+# endTimeOverall = time.time()
+# overallTime = endTimeOverall - startTimeOverall
+#
+# print("Time taken for {} iterations: {} seconds".format(numIterationsMinAlgo, overallTime))
+# [plt.plot(recordOfBestParameters[:, i]) for i in range(np.shape(recordOfBestParameters)[1])]
+# plt.show()

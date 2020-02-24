@@ -3,7 +3,7 @@ import os
 DIRNAME = os.path.dirname(__file__)
 sys.path.append(os.path.join(DIRNAME, "..", "src"))
 
-from LCA import PrepareRecurrentWeights, RunLCASimulation, GetValueInputZeroReference#, getValueInput2Attributes2Choices
+from LCA import PrepareRecurrentWeights, RunLCASimulation, GetValueInputZeroReference, getValueInput2Attributes2Choices
 from LUT import prepareStdNormalLUT, SampleFromLUT
 
 import numpy as np
@@ -63,8 +63,8 @@ getValueInput = GetValueInputZeroReference(identityUtilityFunction)
 maxTimeSteps = 750
 deltaT = 0.01
 prepareRecurrentWeights = PrepareRecurrentWeights(numAccumulators)
-lca = RunLCASimulation(getValueInput, sampleFromZeroMeanLUT, prepareRecurrentWeights, maxTimeSteps, deltaT)
-# lca = RunLCASimulation(getValueInput2Attributes2Choices, sampleFromZeroMeanLUT, prepareRecurrentWeights, maxTimeSteps, deltaT)
+# lca = RunLCASimulation(getValueInput, sampleFromZeroMeanLUT, prepareRecurrentWeights, maxTimeSteps, deltaT)
+lca = RunLCASimulation(getValueInput2Attributes2Choices, sampleFromZeroMeanLUT, prepareRecurrentWeights, maxTimeSteps, deltaT)
 
 attributeProbabilities = (0.5, 0.5)
 startingActivation = (0, 0)
@@ -76,11 +76,12 @@ lcaWrapper = lambda gain, loss, decay, competition, noiseStdDev, nonDecisionTime
         noiseStdDev, nonDecisionTime, [threshold1, threshold2])
 
 for metropolisRun in range(1, 2):
-    numSimulationsPerCondition = 200
-    paramFile = open('../data/LCAZeroRefUnequalThresholds.pickle', 'rb')
+    numSimulationsPerCondition = 50
+    paramFile = open('../data/differentialLCAUnequalThresholds.pickle', 'rb')
     params = pickle.load(paramFile)
     params = (params[-1, :])#[0]
     print("PARAMS = ", params)
+    params = [-2.83570389, 5.449, 62.15105359, 0.38892113, 24.95, 48.04508622, 4.10653348]
 
     modelRecord = np.zeros(2)
     for gainValue in allGainValues:
