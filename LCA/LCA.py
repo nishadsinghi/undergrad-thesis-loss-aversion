@@ -79,10 +79,4 @@ class RunLCASimulation:
 
         reactionTime += nonDecisionTime
 
-        # # this is a temporary fix - need to discuss this with advisors
-        # if response == -1:
-        #     print("No decision reached by LCA: choosing random response!")
-        #     response = np.random.randint(0, np.size(startingActivation))
-        #     print("RESPONSE:", response)
-
         return (allActivations, reactionTime, response)

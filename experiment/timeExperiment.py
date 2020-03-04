@@ -2,25 +2,39 @@ from psychopy import core, visual, gui, data, event  # import some libraries fro
 import itertools
 import random
 from psychopy.tools.filetools import fromFile, toFile
-import time
-try:  # try to get a previous parameters file    expInfo = fromFile('lastParams.pickle')except:  # if not there then use a default set    expInfo = {'observer':'default'}expInfo['dateStr'] = data.getDateStr()  # add the current time
+import time
 
-# present a dialogue to change paramsdlg = gui.DlgFromDict(expInfo, title='Time Gambles', fixed=['dateStr'])if dlg.OK:    toFile('lastParams.pickle', expInfo)  # save params to file for next timeelse:    core.quit()  # the user hit cancel so exit
+try:  # try to get a previous parameters file
+    expInfo = fromFile('lastParams.pickle')
+except:  # if not there then use a default set
+    expInfo = {'observer':'default'}
+expInfo['dateStr'] = data.getDateStr()  # add the current time
 
-# make a text file to save datafileName = expInfo['observer'] + expInfo['dateStr']dataFile = open(fileName+'.csv', 'w')  # a simple text file with 'comma-separated-values'dataFile.write('increaseValue,decreaseValue,response, RT\n')
+# present a dialogue to change params
+dlg = gui.DlgFromDict(expInfo, title='Time Gambles', fixed=['dateStr'])
+if dlg.OK:
+    toFile('lastParams.pickle', expInfo)  # save params to file for next time
+else:
+    core.quit()  # the user hit cancel so exit
+
+# make a text file to save data
+fileName = expInfo['observer'] + expInfo['dateStr']
+dataFile = open(fileName+'.csv', 'w')  # a simple text file with 'comma-separated-values'
+dataFile.write('increaseValue,decreaseValue,response, RT\n')
 
 ############################################################################################
 
-# create a windowwin = visual.Window([800,600], monitor="testMonitor", units="deg", fullscr=True)
+# create a window
+win = visual.Window([800,600], monitor="testMonitor", units="deg", fullscr=True)
 
 # randomly decide which key corresponds to accept 
 responseCorrespondingToUp = random.randrange(2)
 responseCorrespondingToDown = (responseCorrespondingToUp + 1) % 2
 
 if responseCorrespondingToUp == 1:
-    instructionMessage = "Press UP to ACCEPT the gamble. Press DOWN to REJECT the gamble. "
+    instructionMessage = "Press UP to ACCEPT. Press DOWN to REJECT. "
 elif responseCorrespondingToUp == 0:
-    instructionMessage = "Press DOWN to ACCEPT the gamble. Press UP to REJECT the gamble. "
+    instructionMessage = "Press DOWN to ACCEPT. Press UP to REJECT. "
 
 wrapWidth = 35
 # print text for a gamble on screen
@@ -31,13 +45,14 @@ def printGambleValues(combination):
     instructions = visual.TextStim(win, pos=[0, 10], text=instructionMessage, height=0.8, wrapWidth=wrapWidth)
     
     if orientation == 'increaseLeft':
-        leftValue = '+' + str(gamble[0])
-        rightValue = str(gamble[1])
+        leftValue = 'M ' + str(gamble[0])
+        rightValue = 'L ' + str(gamble[1])
     elif orientation == 'increaseRight':
-        rightValue = '+' + str(gamble[0])
-        leftValue = str(gamble[1])
+        leftValue = 'L ' + str(gamble[1])
+        rightValue = 'M ' + str(gamble[0])
         
-    height = 4.5    message1 = visual.TextStim(win, pos=[-10, 0],text=leftValue, height=height)
+    height = 4.5
+    message1 = visual.TextStim(win, pos=[-10, 0],text=leftValue, height=height)
     message2 = visual.TextStim(win, pos=[10, 0],text=rightValue, height=height)
     instructions.draw()
     message1.draw()
@@ -71,13 +86,13 @@ def displayFixation(fixationDuration):
         
 # generate all combinations
 allIncreaseValues = [1, 5, 10, 15, 20, 25]
-allDecreaseValues = [-1, -5, -10, -15, -20, -25]
+allDecreaseValues = [1, 5, 10, 15, 20, 25]
 allCombinations = list(itertools.product(allIncreaseValues, allDecreaseValues))
 allCombinationsAlternatePresentLocations = list(itertools.product(allCombinations, ('increaseLeft', 'increaseRight')))
 random.shuffle(allCombinationsAlternatePresentLocations)
 
 # Welcome message
-welcomeMessage = visual.TextStim(win, pos=[0, 0], text="Welcome! You will now be playing a sequence of gambles. " + instructionMessage + "Press any key when you are ready to begin!", height=1.5, wrapWidth=wrapWidth)
+welcomeMessage = visual.TextStim(win, pos=[0, 0], text="Welcome! You will now be making a sequence of decisions. " + instructionMessage + "Press any key when you are ready to begin!", height=1.5, wrapWidth=wrapWidth)
 welcomeMessage.draw()
 win.flip()
 
@@ -85,7 +100,7 @@ event.waitKeys()
 
 # present gambles
 fixationDuration = 1
-interBlockBreakDuration = 15
+interBlockBreakDuration = 20
 
 numBlocks = 2
 numGambles = len(allCombinationsAlternatePresentLocations)
@@ -95,7 +110,11 @@ numTrials = 0
 for combination in allCombinationsAlternatePresentLocations:
     if numTrials % blockLength == 0 and numTrials != 0:
         print("Displaying block at numTrial", numTrials)
-        displayFixation(interBlockBreakDuration)    
+        m = visual.TextStim(text="Break", win=win)
+        m.draw()
+        win.flip()
+        core.wait(interBlockBreakDuration)
+#        displayFixation(interBlockBreakDuration)    
     
     # display stimulus
     printGambleValues(combination)
@@ -103,9 +122,18 @@ for combination in allCombinationsAlternatePresentLocations:
     startTime = time.time()
     
     # get response
-    thisResp=None    while thisResp==None:        allKeys=event.waitKeys()        for thisKey in allKeys:            if thisKey=='up':                thisResp = responseCorrespondingToUp  # accept
-                endTime = time.time()            elif thisKey=='down':                thisResp = responseCorrespondingToDown  # reject
-                endTime = time.time()        event.clearEvents()  # clear events
+    thisResp=None
+    while thisResp==None:
+        allKeys=event.waitKeys()
+        for thisKey in allKeys:
+            if thisKey=='up':
+                thisResp = responseCorrespondingToUp  # accept
+                endTime = time.time()
+            elif thisKey=='down':
+                thisResp = responseCorrespondingToDown  # reject
+                endTime = time.time()
+            elif thisKey in ['q', 'escape']:                core.quit()
+        event.clearEvents()  # clear events
     reactionTime = endTime - startTime
     
     printGambleValues(combination)
@@ -126,4 +154,4 @@ endMessage = visual.TextStim(win, pos=[0, 0], text="The experiment has come to a
 endMessage.draw()
 win.flip()
 core.wait(5)
-
+
