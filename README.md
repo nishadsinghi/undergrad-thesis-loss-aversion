@@ -2,7 +2,7 @@
 My undergraduate project on computational modeling of loss aversion. <br />
 
 Supervisors: 
-Prof. Sumeet Mukherjee, Department of Electrical Engineering, IIT Delhi <br />
+Prof. Sumeet Agarwal, Department of Electrical Engineering, IIT Delhi <br />
 Prof. Sumitava Mukherjee, Department of Humanities and Social Science, IIT Delhi <br />
 
 - DDM contains notebooks to replicate some results of [1] <br />
