@@ -132,7 +132,8 @@ for combination in allCombinationsAlternatePresentLocations:
             elif thisKey=='down':
                 thisResp = responseCorrespondingToDown  # reject
                 endTime = time.time()
-            elif thisKey in ['q', 'escape']:                core.quit()
+            elif thisKey in ['q', 'escape']:
+                core.quit()
         event.clearEvents()  # clear events
     reactionTime = endTime - startTime
     

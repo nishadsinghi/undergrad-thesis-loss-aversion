@@ -1,0 +1,10 @@
+python3 fitLCAFullParamsDataset2NoParallel.py -i 0 -n 10 &
+python3 fitLCAFullParamsDataset2NoParallel.py -i 1 -n 10 &
+python3 fitLCAFullParamsDataset2NoParallel.py -i 2 -n 10 &
+python3 fitLCAFullParamsDataset2NoParallel.py -i 3 -n 10 &
+python3 fitLCAFullParamsDataset2NoParallel.py -i 4 -n 10 &
+python3 fitLCAFullParamsDataset2NoParallel.py -i 5 -n 10 &
+python3 fitLCAFullParamsDataset2NoParallel.py -i 6 -n 10 &
+python3 fitLCAFullParamsDataset2NoParallel.py -i 7 -n 10 &
+python3 fitLCAFullParamsDataset2NoParallel.py -i 8 -n 10 &
+python3 fitLCAFullParamsDataset2NoParallel.py -i 9 -n 10 &

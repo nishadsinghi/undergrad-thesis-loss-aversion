@@ -10,68 +10,117 @@ from sklearn.linear_model import LinearRegression
 from mpl_toolkits.mplot3d import Axes3D
 from collections import defaultdict
 
-from LCA import PrepareRecurrentWeights, RunLCASimulation, GetValueInputZeroReference, getValueInput2Attributes2Choices
+from LCA import PrepareRecurrentWeights, RunLCASimulation, GetValueInputZeroReference#, getValueInput2Attributes2Choices
 from LUT import prepareStdNormalLUT, SampleFromLUT
 
 data = np.genfromtxt("../src/risk_data.csv", delimiter=',')[1:, :]
 
-def computeParticipantAllLogRTResidual(participantIndex):
-    trialIndicesOfParticipant = np.asarray(np.where(data[:, 0] == participantIndex))[0]
-    participantData = data[trialIndicesOfParticipant]
-    participantAllRT = participantData[:, 2]
-    participantAllLogRT = np.log(participantAllRT).reshape(-1, 1)
-    participantAllGainLoss = participantData[:, 3:5]
-
-    regressor = LinearRegression()
-    regressor.fit(participantAllGainLoss, participantAllLogRT)
-
-    participantAllPredictedLogRT = regressor.predict(participantAllGainLoss)
-    participantAllLogRTResidual = participantAllLogRT - participantAllPredictedLogRT
-
-    return np.ndarray.flatten(participantAllLogRTResidual)
+allGainValues = list(range(10, 110, 10))
+allLossValues = list(range(-100, 0, 10))
 
 
-def extractParticipantResponses(participantIndex):
-    trialIndicesOfParticipant = np.asarray(np.where(data[:, 0] == participantIndex))[0]
-    participantData = data[trialIndicesOfParticipant]
-    participantResponses = participantData[:, 1]
+# def computeParticipantAllLogRTResidual(participantIndex):
+#     trialIndicesOfParticipant = np.asarray(np.where(data[:, 0] == participantIndex))[0]
+#     participantData = data[trialIndicesOfParticipant]
+#     participantAllRT = participantData[:, 2]
+#     participantAllLogRT = np.log(participantAllRT).reshape(-1, 1)
+#     participantAllGainLoss = participantData[:, 3:5]
+#
+#     regressor = LinearRegression()
+#     regressor.fit(participantAllGainLoss, participantAllLogRT)
+#
+#     participantAllPredictedLogRT = regressor.predict(participantAllGainLoss)
+#     participantAllLogRTResidual = participantAllLogRT - participantAllPredictedLogRT
+#
+#     return np.ndarray.flatten(participantAllLogRTResidual)
+#
+#
+# def extractParticipantResponses(participantIndex):
+#     trialIndicesOfParticipant = np.asarray(np.where(data[:, 0] == participantIndex))[0]
+#     participantData = data[trialIndicesOfParticipant]
+#     participantResponses = participantData[:, 1]
+#
+#     return participantResponses
+#
+#
+# def computeParticipantMeanPAcceptForBinnedRT(participantIndex, numBins):
+#     participantAllLogRTResidual = computeParticipantAllLogRTResidual(participantIndex)
+#     participantResponses = extractParticipantResponses(participantIndex)
+#     _, sortedResponses = (list(t) for t in zip(*sorted(zip(participantAllLogRTResidual.tolist(), participantResponses.tolist()))))
+#     binnedResponses = np.array_split(sortedResponses, numBins)
+#     binPAccept = [np.mean(binResponses) for binResponses in binnedResponses]
+#
+#     return binPAccept
+#
+#
+# allParticipantMeanPAcceptForBinnedRT = np.array([computeParticipantMeanPAcceptForBinnedRT(participantIndex, 5) for participantIndex in range(1, 50)])
+# meanPAcceptForBinnedRT = np.mean(allParticipantMeanPAcceptForBinnedRT, 0)
+#
+# plt.plot(meanPAcceptForBinnedRT, marker='o', label='Observed Responses')
+# plt.ylabel("P(accept)")
+# plt.xlabel("Choice factor adjusted RT")
+# plt.ylim(0, 1)
 
-    return participantResponses
 
 
-def prepareParticipantDictPAcceptLogRTResidual(participantIndex):
-    participantAllLogRTResidual = computeParticipantAllLogRTResidual(participantIndex)
-    participantResponses = extractParticipantResponses(participantIndex)
+allLogRT = np.log(data[:, 2]).reshape(-1, 1)
+allGainLoss = data[:, 3:5]
+regressor = LinearRegression()
+regressor.fit(allGainLoss, allLogRT)
+allPredictedLogRT = regressor.predict(allGainLoss)
+allLogRTResidual = allLogRT - allPredictedLogRT
 
-    dictPAcceptLogRTResidual = {residual: pAccept for pAccept, residual in
-                                zip(participantResponses, participantAllLogRTResidual)}
+responses = data[:, 1]
+_, sortedResponses = (list(t) for t in zip(*sorted(zip(allLogRTResidual.tolist(), responses.tolist()))))
 
-    return dictPAcceptLogRTResidual
+binnedResponses = np.array_split(sortedResponses, 5)
+binPAccept = [np.mean(binResponses) for binResponses in binnedResponses]
 
-
-sortDictUsingKeys = lambda dictionary: {key: value for key, value in sorted(dictionary.items(), key=lambda item: item[0])}
-prepareParticipantSortedDict = lambda participantIndex: sortDictUsingKeys(prepareParticipantDictPAcceptLogRTResidual(participantIndex))
-
-
-def computeParticipantMeanPAcceptForBinnedRT(participantIndex, numBins):
-    participantSortedDict = prepareParticipantSortedDict(participantIndex)
-    allResponses = np.array(list(participantSortedDict.values()))
-    binnedResponses = np.array_split(allResponses, numBins)
-    binPAccept = [np.mean(binResponses) for binResponses in binnedResponses]
-
-    return binPAccept
+plt.plot(binPAccept, marker='o', label='All data clubbed together')
 
 
-allParticipantMeanPAcceptForBinnedRT = np.array([computeParticipantMeanPAcceptForBinnedRT(participantIndex, 5) for participantIndex in range(1, 50)])
-meanPAcceptForBinnedRT = np.mean(allParticipantMeanPAcceptForBinnedRT, 0)
 
-plt.plot(meanPAcceptForBinnedRT, marker='o', label='Observed Responses')
-plt.ylabel("P(accept)")
-plt.xlabel("Choice factor adjusted RT")
-plt.ylim(0, 1)
+data = np.genfromtxt("/Users/nishadsinghi/undergrad-project-loss-aversion/DDM/allParticipantDataClubbedSimulatedData.csv", delimiter=',')[1:, :]
+allLogRT = np.log(data[:, 2]).reshape(-1, 1)
+allGainLoss = data[:, 3:5]
+regressor = LinearRegression()
+regressor.fit(allGainLoss, allLogRT)
+allPredictedLogRT = regressor.predict(allGainLoss)
+allLogRTResidual = allLogRT - allPredictedLogRT
+
+responses = data[:, 1]
+_, sortedResponses = (list(t) for t in zip(*sorted(zip(allLogRTResidual.tolist(), responses.tolist()))))
+
+binnedResponses = np.array_split(sortedResponses, 5)
+binPAccept = [np.mean(binResponses) for binResponses in binnedResponses]
+
+plt.plot(binPAccept, marker='o', label='DDM', linestyle='--')
 
 
-                                                    # SIMULATION
+# data = np.genfromtxt("../src/simulatedData.csv", delimiter=',')[1:, :]
+#
+# allLogRT = np.log(data[:, 2]).reshape(-1, 1)
+# allGainLoss = data[:, 3:5]
+# regressor = LinearRegression()
+# regressor.fit(allGainLoss, allLogRT)
+# allPredictedLogRT = regressor.predict(allGainLoss)
+# allLogRTResidual = allLogRT - allPredictedLogRT
+#
+# responses = data[:, 1]
+# _, sortedResponses = (list(t) for t in zip(*sorted(zip(allLogRTResidual.tolist(), responses.tolist()))))
+#
+# binnedResponses = np.array_split(sortedResponses, 5)
+# binPAccept = [np.mean(binResponses) for binResponses in binnedResponses]
+#
+# plt.plot(binPAccept, marker='o', label='simulated data clubbed together', linestyle='--')
+# plt.ylabel("P(accept)")
+# plt.xlabel("Choice factor adjusted RT")
+# plt.ylim(0, 1)
+# plt.legend()
+# plt.show()
+
+
+# SIMULATION
 
 def filterFunction(tup):
     if tup[-1] != -1:
@@ -79,6 +128,7 @@ def filterFunction(tup):
     else:
         return False
 
+# set up look-up table (LUT)
 LUTInterval = 0.0001
 numAccumulators = 2
 stdNormalLUT = prepareStdNormalLUT(LUTInterval)
@@ -89,69 +139,88 @@ sampleFromZeroMeanLUT = lambda stdDev: sampleFromLUT(0, stdDev, numAccumulators)
 identityUtilityFunction = lambda x: x
 getValueInput = GetValueInputZeroReference(identityUtilityFunction)
 
-maxTimeSteps = 750
-deltaT = 0.01
+maxTimeSteps = 1000
+deltaT = 0.02
 prepareRecurrentWeights = PrepareRecurrentWeights(numAccumulators)
-# lca = RunLCASimulation(getValueInput, sampleFromZeroMeanLUT, prepareRecurrentWeights, maxTimeSteps, deltaT)
-lca = RunLCASimulation(getValueInput2Attributes2Choices, sampleFromZeroMeanLUT, prepareRecurrentWeights, maxTimeSteps, deltaT)
+lca = RunLCASimulation(getValueInput, sampleFromZeroMeanLUT, prepareRecurrentWeights, maxTimeSteps, deltaT)
+# lca = RunLCASimulation(getValueInput2Attributes2Choices, sampleFromZeroMeanLUT, prepareRecurrentWeights, maxTimeSteps, deltaT)
 
-attributeProbabilities = (0.5, 0.5)
-startingActivation = (0, 0)
+# attributeProbabilities = (0.5, 0.5)
+# startingActivation = (0, 0)
+#
+# getChoiceAttributes = lambda gain, loss: np.array([[0, 0], [gain, loss]])
+# lcaWrapper = lambda gain, loss, decay, competition, noiseStdDev, nonDecisionTime, threshold1, threshold2, constantInput: \
+#     lca(attributeProbabilities, getChoiceAttributes(gain, loss), startingActivation, decay, competition, constantInput,
+#         noiseStdDev, nonDecisionTime, [threshold1, threshold2])
+
+def getStartingActivation(startingBias, threshold):
+    if startingBias < 0:
+        return [-1*startingBias*threshold, 0]
+    else:
+        return [0, startingBias*threshold]
 
 getChoiceAttributes = lambda gain, loss: np.array([[0, 0], [gain, loss]])
 getAllThresholds = lambda threshold: [threshold]*numAccumulators
-lcaWrapper = lambda gain, loss, decay, competition, noiseStdDev, nonDecisionTime, threshold1, threshold2, constantInput: \
-    lca(attributeProbabilities, getChoiceAttributes(gain, loss), startingActivation, decay, competition, constantInput,
-        noiseStdDev, nonDecisionTime, [threshold1, threshold2])
+lcaWrapper = lambda gain, loss, decay, competition, noiseStdDev, nonDecisionTime, threshold, startingBias, constantInput: \
+    lca(attributeProbabilities, getChoiceAttributes(gain, loss), getStartingActivation(startingBias, threshold), decay, competition, constantInput,
+        noiseStdDev, nonDecisionTime, getAllThresholds(threshold))
 
-for metropolisRun in range(1, 2):
-    numSimulationsPerCondition = 100
-    paramFile = open('../data/differentialLCAUnequalThresholds.pickle'.format(metropolisRun), 'rb')
-    params = pickle.load(paramFile)
-    params = (params[-1:, :])[0]
-    print("PARAMS = ", params)
-    params = [-2.83570389, 5.449, 62.15105359, 0.38892113, 24.95, 48.04508622, 4.10653348]
+attributeProbabilities = (0.5, 0.5)
+startingActivation = (0, 0)
+getChoiceAttributes = lambda gain, loss: np.array([[0, 0], [gain, loss]])
+getAllThresholds = lambda threshold: [threshold]*numAccumulators
 
-    allGainValues = list(range(10, 110, 10))
-    allLossValues = list(range(-100, 0, 10))
+lcaWrapper = lambda gain, loss, decay, competition, noiseStdDev, nonDecisionTime, threshold, constantInput, lossWeight: \
+    lca(attributeProbabilities, getChoiceAttributes(gain, lossWeight*loss), startingActivation, decay, competition, constantInput,
+        noiseStdDev, nonDecisionTime, getAllThresholds(threshold))
 
-    stakesValues = np.zeros(2)
-    modelLogRT = np.zeros(1)
-    modelResponses = np.zeros(1)
 
-    for gainValue in allGainValues:
-        for lossValue in allLossValues:
-            allSimulations = [lcaWrapper(gainValue, lossValue, *params) for _ in
-                              range(numSimulationsPerCondition)]
-            allValidResponseSimulations = list(filter(filterFunction, allSimulations))
-            _, allModelRTs, allModelResponses = zip(*allValidResponseSimulations)
-            allModelLogRTs = np.reshape(np.log(allModelRTs), (-1, 1))
-            allModelResponses = np.reshape(allModelResponses, (-1, 1))
-            stakes = np.hstack((np.full((numSimulationsPerCondition, 1), gainValue), np.full((numSimulationsPerCondition, 1), lossValue)))
-            stakesValues = np.vstack((stakesValues, stakes))
-            modelLogRT = np.vstack((modelLogRT, allModelLogRTs))
-            modelResponses = np.vstack((modelResponses, allModelResponses))
 
-    stakesValues = stakesValues[1:, :]
+def plotPAcceptVsAdjustedRT(params, label):
+    for metropolisRun in range(1, 2):
+        numSimulationsPerCondition = 150
+        print("PARAMS = ", params)
 
-    modelLogRT = modelLogRT[1:, :]
-    modelResponses = modelResponses[1:, :]
+        stakesValues = np.zeros(2)
+        modelLogRT = np.zeros(1)
+        modelResponses = np.zeros(1)
 
-    regressor = LinearRegression()
-    regressor.fit(stakesValues, modelLogRT)
+        for gainValue in allGainValues:
+            for lossValue in allLossValues:
+                allSimulations = [lcaWrapper(gainValue, lossValue, *params) for _ in
+                                  range(numSimulationsPerCondition)]
+                allValidResponseSimulations = list(filter(filterFunction, allSimulations))
+                _, allModelRTs, allModelResponses = zip(*allValidResponseSimulations)
+                numValidResponses = np.shape(allModelRTs)[0]
+                allModelLogRTs = np.reshape(np.log(allModelRTs), (-1, 1))
+                allModelResponses = np.reshape(allModelResponses, (-1, 1))
+                stakes = np.hstack((np.full((numValidResponses, 1), gainValue), np.full((numValidResponses, 1), lossValue)))
+                stakesValues = np.vstack((stakesValues, stakes))
+                modelLogRT = np.vstack((modelLogRT, allModelLogRTs))
+                modelResponses = np.vstack((modelResponses, allModelResponses))
 
-    predictedLogRT = regressor.predict(stakesValues)
-    allLogRTResidual = modelLogRT - predictedLogRT
+        stakesValues = stakesValues[1:, :]
 
-    print("Proportion of gambles accepted by the model: ", np.mean(modelResponses)*100)
+        modelLogRT = modelLogRT[1:, :]
+        modelResponses = modelResponses[1:, :]
 
-    dict = {residual: response for residual, response in zip(np.ndarray.flatten(allLogRTResidual), np.ndarray.flatten(modelResponses))}
-    sortedDict = {k: v for k, v in sorted(dict.items(), key=lambda item: item[0])}
-    allResponses = np.array(list(sortedDict.values()))
-    numBins = 5
-    modelBinnedResponses = np.array_split(allResponses, numBins)
-    modelBinPAccept = [np.mean(binResponses) for binResponses in modelBinnedResponses]
-    plt.plot(modelBinPAccept, marker='o', linestyle='dashed', label='LCA Simulation {}'.format(metropolisRun))
+        regressor = LinearRegression()
+        regressor.fit(stakesValues, modelLogRT)
 
+        predictedLogRT = regressor.predict(stakesValues)
+        allLogRTResidual = modelLogRT - predictedLogRT
+
+        print("Proportion of gambles accepted by the model: ", np.mean(modelResponses)*100)
+
+        allRTs, allResponses = (list(t) for t in zip(*sorted(zip(allLogRTResidual.tolist(), modelResponses.tolist()))))
+        numBins = 5
+        modelBinnedResponses = np.array_split(allResponses, numBins)
+        modelBinPAccept = [np.mean(binResponses) for binResponses in modelBinnedResponses]
+        plt.plot(modelBinPAccept, marker='o', linestyle='dashed', label=label)
+
+
+plotPAcceptVsAdjustedRT([1.77895768e+00,  3.20906638e+00,  9.58128213e+01,  1.96114120e-01, 3.40131479e+01, -3.41666518e-01,  7.71126655e+01], "LCA")
+
+plt.ylim(0, 1)
 plt.legend()
 plt.show()
