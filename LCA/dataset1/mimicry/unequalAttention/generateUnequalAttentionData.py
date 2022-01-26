@@ -22,7 +22,7 @@ def filterFunction(tup):
     else:
         return False
 
-numSimulationsPerCondition = 150
+numSimulationsPerCondition = 200
 
 # set up look-up table (LUT)
 LUTInterval = 0.0001
@@ -74,4 +74,4 @@ for stakes in allStakes:
     allModelData = np.vstack((allModelData, modelDataForStakes))
 
 allModelData = allModelData[1:, :]
-np.savetxt("unequalAttentionSimulatedData.csv", allModelData, delimiter=",")
+np.savetxt("simulatedData/unequalAttention_repeat.csv", allModelData, delimiter=",")

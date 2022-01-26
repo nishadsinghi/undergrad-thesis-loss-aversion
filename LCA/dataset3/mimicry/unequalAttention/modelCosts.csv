@@ -1,0 +1,5 @@
+,chiSquared,AIC
+unequalAttention (baseline),1718.819263130001,
+onlyLossAversion.csv,2156.476049581125,inf
+onlyPredecisionalBias.csv,7359.265091713431,
+onlyFixedUtilityBias.csv,5316.4969322997895,

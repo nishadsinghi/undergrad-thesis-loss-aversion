@@ -22,7 +22,7 @@ def filterFunction(tup):
     else:
         return False
 
-numSimulationsPerCondition = 150
+numSimulationsPerCondition = 200#150
 
 # set up look-up table (LUT)
 LUTInterval = 0.0001
@@ -72,4 +72,5 @@ for stakes in allStakes:
     allModelData = np.vstack((allModelData, modelDataForStakes))
 
 allModelData = allModelData[1:, :]
-np.savetxt("unequalThresholdSimulatedData.csv", allModelData, delimiter=",")
+np.savetxt("simulatedData/unequalThreshold_repeat.csv", allModelData, delimiter=",")
+# np.savetxt("unequalThresholdSimulatedData.csv", allModelData, delimiter=",")

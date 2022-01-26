@@ -110,39 +110,44 @@ def runMetropolis(chainIndex):
             allModelData[:, 1] = allModelData[:, 1] - delta
 
             totalCost = 0
-            quantiles = np.array([0.1, 0.3, 0.5, 0.7, 0.9])
-            observedProportionsChoiceWise = np.array([0.1, 0.2, 0.2, 0.2, 0.2, 0.1])
-            for stakes in self.allStakes:
+            quantiles = np.array([0.1, 0.3, 0.5, 0.7, 0.9]) # quantiles of the chi^2 function
+            observedProportionsChoiceWise = np.array([0.1, 0.2, 0.2, 0.2, 0.2, 0.1]) # this is to cover some edge cases
+            for stakes in self.allStakes: # loop over all combinations of possible gain and loss
                 gain, loss = stakes
                 observedTrials = selectConditionTrials(data, gain, loss)
                 numObservedTrials = np.shape(observedTrials)[0]
                 modelTrials = selectConditionTrials(allModelData, gain, loss)
                 numModelTrials = np.shape(modelTrials)[0]
-                for choice in range(2):
+                for choice in range(2): # loop over choice = 0 (reject) and 1 (accept)
                     observedTrialsForChoice = observedTrials[observedTrials[:, 0] == choice]
                     observedRTsForChoice = observedTrialsForChoice[:, 1]
                     numObservedRTsForChoice = np.size(observedRTsForChoice)
                     observedPOfThisChoice = numObservedRTsForChoice / numObservedTrials
 
-                    if numObservedRTsForChoice < 5:
-                        continue
+                    if numObservedRTsForChoice < 5: # less than 5 trials --> can't compute quantile boundaries
+                        continue # skip this combination of gain, loss, choice
 
                     quantilesBoundaries = np.quantile(observedRTsForChoice, quantiles)
 
-                    expectedFrequencies = \
+                    observedProportions = \
                         np.histogram(observedRTsForChoice, bins=np.concatenate(([0], quantilesBoundaries, [100])))[
-                            0] / numObservedTrials
+                            0] / numObservedTrials # proportions of experimental RTs in all quantiles
 
-                    if numObservedRTsForChoice == 5 or 0 in expectedFrequencies:
-                        expectedFrequencies = observedProportionsChoiceWise * observedPOfThisChoice
+                    if numObservedRTsForChoice == 5 or 0 in observedProportions: # some edge cases
+                        observedProportions = observedProportionsChoiceWise * observedPOfThisChoice
+
+                    observedFrequencies = numObservedTrials * observedProportions
 
                     modelTrialsForChoice = modelTrials[modelTrials[:, 0] == choice]
                     modelRTsForChoice = modelTrialsForChoice[:, 1]
-                    modelFrequencies = \
-                    np.histogram(modelRTsForChoice, bins=np.concatenate(([0], quantilesBoundaries, [100])))[
-                        0] / numModelTrials
+                    numModelRTsForChoice = np.size(modelRTsForChoice)
+                    modelProportions = \
+                        np.histogram(modelRTsForChoice, bins=np.concatenate(([0], quantilesBoundaries, [100])))[
+                            0] / numModelTrials
 
-                    totalCost += chisquare(modelFrequencies, expectedFrequencies)[0]
+                    modelFrequencies = numObservedTrials * modelProportions
+
+                    totalCost += chisquare(modelFrequencies, observedFrequencies)[0]
             return (totalCost, parameters[3] - delta)
 
 

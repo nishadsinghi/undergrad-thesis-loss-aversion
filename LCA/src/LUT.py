@@ -1,3 +1,9 @@
+'''
+Since sampling from a Gaussian can be slow, and it is a central step in our model, I tried to use a supposedly
+faster trick: it stores samples from a standard Gaussian, and scales them based on the mean and standard deviation of
+the Gaussian. It is a 'look-up table', hence LUT.py.
+'''
+
 from scipy.stats import norm
 import numpy as np
 

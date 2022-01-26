@@ -1,0 +1,5 @@
+,chiSquared,AIC
+unequalThreshold (baseline),1787.4571060746375,
+onlyLossAversion.csv,8118.005935000768,
+onlyPredecisionalBias.csv,2566.816867956179,
+onlyFixedUtilityBias.csv,5593.4726177649,

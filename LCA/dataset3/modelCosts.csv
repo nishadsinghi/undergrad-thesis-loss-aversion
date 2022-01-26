@@ -1,0 +1,6 @@
+,chiSquared,AIC
+onlyLossAversion,5840.0094589807595,
+onlyUnequalAttention,5707.540375911128,inf
+onlyStartingBias,6249.868703261761,inf
+onlyUnequalThreshold,6331.888197539046,inf
+onlyFixedUtilityBias,8266.9148070279,
