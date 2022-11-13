@@ -1,5 +1,5 @@
 
-My undergraduate project on computational modeling of loss aversion. <br />
+My undergraduate thesis on computational modeling of loss aversion. <br />
 
 Supervisors: 
 Prof. Sumeet Agarwal, Department of Electrical Engineering, IIT Delhi <br />
